@@ -8,7 +8,10 @@ from nltk.stem import PorterStemmer
 import matplotlib.pyplot as plt
 
 # Download stopwords
-nltk.download('stopwords')
+try:
+    nltk.data.find('corpora/stopwords')
+except LookupError:
+    nltk.download('stopwords', quiet=True)
 
 # Load saved artifacts
 model = joblib.load('model.joblib')
@@ -46,12 +49,17 @@ with st.sidebar:
 # Main interface
 email_input = st.text_area("Enter email text:", height=200)
 
+# Preprocessing 
 if st.button("Check Spam"):
     if email_input:
         # Preprocess
         cleaned_text = preprocess_text(email_input)
+        st.write("Preprocessed text:", cleaned_text)  # Debug output
+        
         # Vectorize
         text_vector = vectorizer.transform([cleaned_text]).toarray()
+        st.write("Vector shape:", text_vector.shape)  # Should match training shape
+        
         # Predict
         prediction = model.predict(text_vector)[0]
         # Display result
