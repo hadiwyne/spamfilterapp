@@ -110,6 +110,15 @@ if st.button("Check Spam"):
             st.subheader("Model Predictions")
             for name in pipelines:
                 st.write(f"**{name}:** {verdicts[name]} ({probs[name]*100:.1f}% spam)")
+                
+                # Add progress bars for each model
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("Ham probability")
+                    st.progress(1 - probs[name])  # Ham probability is 1 - spam probability
+                with col2:
+                    st.write("Spam probability")
+                    st.progress(probs[name])
             
             st.markdown("---")
             
@@ -118,6 +127,16 @@ if st.button("Check Spam"):
                 st.error(f"🚨 **Ensemble Verdict:** {final_label} (avg {avg_spam_proba*100:.1f}% spam)")
             else:
                 st.success(f"✅ **Ensemble Verdict:** {final_label} (avg {avg_spam_proba*100:.1f}% spam)")
+                
+            # Add ensemble progress bars
+            st.write("**Ensemble Average Probabilities:**")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("Ham probability")
+                st.progress(1 - avg_spam_proba)
+            with col2:
+                st.write("Spam probability")
+                st.progress(avg_spam_proba)
             
             # Add to message history
             timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
