@@ -14,8 +14,7 @@ except LookupError:
     nltk.download('stopwords', quiet=True)
 
 # Load saved artifacts
-model = joblib.load('model.joblib')
-vectorizer = joblib.load('vectorizer.joblib')
+model = joblib.load('spam_classifier_pipeline.joblib')
 
 # Preprocessing function
 def preprocess_text(text):
@@ -56,12 +55,9 @@ if st.button("Check Spam"):
         cleaned_text = preprocess_text(email_input)
         st.write("Preprocessed text:", cleaned_text)  # Debug output
         
-        # Vectorize
-        text_vector = vectorizer.transform([cleaned_text]).toarray()
-        st.write("Vector shape:", text_vector.shape)  # Should match training shape
-        
-        # Predict
-        prediction = model.predict(text_vector)[0]
+        # Predict directly using pipeline
+        prediction = model.predict([cleaned_text])[0]
+
         # Display result
         if prediction == 1:
             st.error("🚨 This is SPAM!")
@@ -69,7 +65,7 @@ if st.button("Check Spam"):
             st.success("✅ This is HAM (not spam)")
         
         st.write("Model confidence:")
-        proba = model.predict_proba(text_vector)[0]
+        proba = model.predict_proba([cleaned_text])[0]
         st.write(f"Ham probability: {proba[0]*100:.2f}%")
         st.write(f"Spam probability: {proba[1]*100:.2f}%")
     else:
