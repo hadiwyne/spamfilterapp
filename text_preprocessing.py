@@ -14,7 +14,13 @@ def preprocess_text(text):
 def preprocess_texts_func(texts):
     return [preprocess_text(t) for t in texts]
 
+# Alias for compatibility with existing pipelines
+preprocess_texts = preprocess_texts_func
+
 # Convert sparse matrix to dense
 
 def to_dense_func(X):
     return X.toarray()
+
+# Alias for compatibility
+to_dense = to_dense_func
