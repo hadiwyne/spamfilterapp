@@ -8,8 +8,8 @@ from nltk.stem import PorterStemmer
 import matplotlib.pyplot as plt
 
 
-if 'message_history' not in st.
-session_state:
+# Initialize session state for message history
+if 'message_history' not in st.session_state:
     st.session_state.message_history = []
 # Download stopwords
 try:
