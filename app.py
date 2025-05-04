@@ -1,10 +1,9 @@
 import joblib, streamlit as st
-import nltk
-import string
-import pandas as pd
+import nltk, string, pandas as pd, matplotlib.pyplot as plt
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-import matplotlib.pyplot as plt
+from text_preprocessing import preprocess_text, preprocess_texts_func, to_dense_func
+
 
 # Ensure stopwords are downloaded
 try:
