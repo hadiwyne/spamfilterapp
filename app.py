@@ -1,8 +1,18 @@
+import sys
+import text_preprocessing
+
+for name in (
+    "preprocess_text",
+    "preprocess_texts",
+    "preprocess_texts_func",
+    "to_dense",
+    "to_dense_func"
+):
+    setattr(sys.modules['__main__'], name, getattr(text_preprocessing, name))
 import joblib, streamlit as st
 import nltk, string, pandas as pd, matplotlib.pyplot as plt
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-from text_preprocessing import preprocess_text, preprocess_texts_func, to_dense_func
 
 
 # Ensure stopwords are downloaded
