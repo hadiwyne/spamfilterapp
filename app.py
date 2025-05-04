@@ -5,6 +5,9 @@ import pandas as pd
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import FunctionTransformer
+from text_preprocessing import preprocess_texts
+
 
 
 # Initialize session state for message history
