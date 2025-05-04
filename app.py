@@ -118,7 +118,7 @@ if st.button("Check Spam"):
         try:
             prediction = model.predict([email_input])[0]
             proba = model.predict_proba([email_input])[0]
-            result_label = "Spam" if prediction == 1 else "Ham"
+            result_label = "SPAM" if prediction == 1 else "HAM"
 
             if prediction == 1:
                 st.error("🚨 This email is classified as **SPAM**.")
@@ -131,12 +131,11 @@ if st.button("Check Spam"):
                 st.metric("Ham probability", f"{proba[0]*100:.2f}%")
             with col2:
                 st.metric("Spam probability", f"{proba[1]*100:.2f}%")
+            
             # Progress bar (simple visualization)
             st.progress(proba[1])
-        except Exception as e:
-            st.error(f"⚠️ Prediction failed: {str(e)}")
-        
-         # Add to message history
+
+            # Add to message history
             timestamp = pd.Timestamp.now().strftime("%H:%M:%S")
             st.session_state.message_history.append({
                 "timestamp": timestamp,
@@ -146,8 +145,9 @@ if st.button("Check Spam"):
                 "ham_prob": f"{proba[0]*100:.2f}%",
                 "spam_prob": f"{proba[1]*100:.2f}%"
             })
+
         except Exception as e:
-            st.error(f"Prediction failed: {str(e)}")
+            st.error(f"⚠️ Prediction failed: {str(e)}")
 
 
 # Documentation
