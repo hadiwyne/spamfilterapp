@@ -77,9 +77,12 @@ with st.sidebar:
 
 # Main interface
 if 'email_input' in st.session_state:
-    email_input = st.text_area("Enter email text:", st.session_state.email_input, height=200)
+    email_input = st.text_area("Enter email text:", st.session_state.email_input, height=200, key="email_text")
+    # Clear session state if user types something new
+    if email_input != st.session_state.email_input:
+        del st.session_state.email_input
 else:
-    email_input = st.text_area("Enter email text:", height=200)
+    email_input = st.text_area("Enter email text:", height=200, key="email_text")
 
 # Add example messages
 with st.expander("Example messages to test"):
@@ -101,9 +104,9 @@ with st.expander("Example messages to test"):
             st.session_state.email_input = "Buy Viagra online! 90% discount! Limited time offer! Act now!"
             st.rerun()
 
-# Update text area if example was selected
-if 'email_input' in st.session_state:
-    email_input = st.session_state.email_input
+# Remove the duplicate update of email_input
+# if 'email_input' in st.session_state:
+#     email_input = st.session_state.email_input
 
 # Preprocessing 
 if st.button("Check Spam"):
@@ -178,7 +181,25 @@ with st.expander("Advanced Settings"):
     
     if email_input and 'proba' in locals():
         adjusted_prediction = "SPAM" if proba[1] > threshold else "HAM"
-        st.write(f"With adjusted threshold: This message is {adjusted_prediction}")
+        
+        # Add visual indicators for threshold-based prediction
+        if adjusted_prediction == "SPAM":
+            st.error(f"With threshold {threshold}: This message is {adjusted_prediction}")
+        else:
+            st.success(f"With threshold {threshold}: This message is {adjusted_prediction}")
+            
+        # Show the difference from default threshold
+        if (proba[1] > 0.5) != (proba[1] > threshold):
+            st.warning("Note: This prediction differs from the default threshold (0.5)")
+            
+        # Add visualization of threshold
+        st.write("Probability distribution:")
+        prob_chart = st.progress(proba[1])
+        st.markdown(f"""
+        - Current spam probability: {proba[1]*100:.2f}%
+        - Current threshold: {threshold*100:.2f}%
+        - Default threshold: 50%
+        """)
 
 if st.session_state.message_history:
     st.header("Message History")
