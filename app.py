@@ -7,6 +7,10 @@ from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 import matplotlib.pyplot as plt
 
+
+if 'message_history' not in st.
+session_state:
+    st.session_state.message_history = []
 # Download stopwords
 try:
     nltk.data.find('corpora/stopwords')
@@ -114,8 +118,10 @@ if st.button("Check Spam"):
         # Display result
         if prediction == 1:
             st.error("🚨 This is SPAM!")
+            result_label = "SPAM"
         else:
             st.success("✅ This is HAM (not spam)")
+            result_label = "HAM"
         
         # Create a more visual confidence display
         st.write("Model confidence:")
@@ -127,6 +133,17 @@ if st.button("Check Spam"):
             
         # Add a progress bar for visualization
         st.progress(proba[1])
+        
+        # Add to message history
+        timestamp = pd.Timestamp.now().strftime("%H:%M:%S")
+        st.session_state.message_history.append({
+            "timestamp": timestamp,
+            "message": email_input[:50] + ("..." if len(email_input) > 50 else ""),
+            "full_message": email_input,
+            "result": result_label,
+            "ham_prob": f"{proba[0]*100:.2f}%",
+            "spam_prob": f"{proba[1]*100:.2f}%"
+        })
     else:
         st.warning("Please enter some text to analyze")
 
