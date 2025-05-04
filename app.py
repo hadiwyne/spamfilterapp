@@ -112,29 +112,29 @@ with st.expander("Example messages to test"):
 
 # Preprocessing 
 if st.button("Check Spam"):
-    if email_input:
-        prediction = model.predict([email_input])[0]
+    if email_input.strip() == "":
+        st.warning("Please enter some text to check.")
+    else:
+        try:
+            prediction = model.predict([email_input])[0]
+            proba = model.predict_proba([email_input])[0]
 
+            if prediction == 1:
+                st.error("🚨 This email is classified as **SPAM**.")
+            else:
+                st.success("✅ This email is classified as **NOT SPAM**.")
 
+            # Metrics
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Ham probability", f"{proba[0]*100:.2f}%")
+            with col2:
+                st.metric("Spam probability", f"{proba[1]*100:.2f}%")
 
-        # Display result
-        if prediction == 1:
-            st.error("🚨 This is SPAM!")
-            result_label = "SPAM"
-        else:
-            st.success("✅ This is HAM (not spam)")
-            result_label = "HAM"
-        
-        # Create a more visual confidence display
-        st.write("Model confidence:")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Ham probability", f"{proba[0]*100:.2f}%")
-        with col2:
-            st.metric("Spam probability", f"{proba[1]*100:.2f}%")
-            
-        # Add a progress bar for visualization
-        st.progress(proba[1])
+            # Progress bar (simple visualization)
+            st.progress(proba[1])
+        except Exception as e:
+            st.error(f"⚠️ Prediction failed: {str(e)}")
         
         # Add to message history
         timestamp = pd.Timestamp.now().strftime("%H:%M:%S")
@@ -146,7 +146,7 @@ if st.button("Check Spam"):
             "ham_prob": f"{proba[0]*100:.2f}%",
             "spam_prob": f"{proba[1]*100:.2f}%"
         })
-    else:
+elif email_input.strip() == "":
         st.warning("Please enter some text to analyze")
 
 # Documentation
