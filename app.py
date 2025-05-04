@@ -5,71 +5,38 @@ import pandas as pd
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import FunctionTransformer
-from text_preprocessing import preprocess_texts
 
-
-
-# Initialize session state for message history
-if 'message_history' not in st.session_state:
-    st.session_state.message_history = []
-# Download stopwords
+# Ensure stopwords are downloaded
 try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
     nltk.download('stopwords', quiet=True)
 
-# Load saved artifacts
-model = joblib.load('spam_classifier_pipeline.joblib')
+# Load pipelines for each model
+pipelines = {
+    'Logistic Regression': joblib.load('spam_classifier_pipeline_lr.joblib'),
+    'Naive Bayes': joblib.load('spam_classifier_pipeline_nb.joblib'),
+    'MLP': joblib.load('spam_classifier_pipeline_mlp.joblib')
+}
 
-# Preprocessing function
-def preprocess_text(text):
-    ps = PorterStemmer()
-    text = text.lower()
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    text = text.split()
-    text = [ps.stem(word) for word in text if word not in stopwords.words('english')]
-    return ' '.join(text)
+# Initialize session state for message history
+if 'message_history' not in st.session_state:
+    st.session_state.message_history = []
 
 # Streamlit app
-st.title("📧 Spam Email Classifier")
-st.write("Using Logistic Regression")
-
-# Add model debugging information
-with st.expander("Model Information"):
-    # Display model details if available
-    try:
-        pipeline_steps = model.named_steps
-        st.write("Pipeline steps:", list(pipeline_steps.keys()))
-        
-        # If the model has a classifier with feature importances, show them
-        if hasattr(model[-1], 'coef_'):
-            # For logistic regression, get feature names if available
-            if hasattr(model[0], 'get_feature_names_out'):
-                feature_names = model[0].get_feature_names_out()
-                coefficients = model[-1].coef_[0]
-                
-                # Show top positive and negative coefficients
-                coef_df = pd.DataFrame({'Feature': feature_names, 'Coefficient': coefficients})
-                coef_df = coef_df.sort_values('Coefficient', ascending=False)
-                
-                st.write("Top 10 spam indicators:")
-                st.dataframe(coef_df.head(10))
-                
-                st.write("Top 10 ham indicators:")
-                st.dataframe(coef_df.tail(10))
-    except Exception as e:
-        st.write("Could not extract model details:", str(e))
+st.title("📧 Ensemble Spam Detector")
+st.write("This app uses Logistic Regression, Naive Bayes, and MLP in a majority-vote ensemble.")
 
 # Sidebar for EDA
 with st.sidebar:
     st.header("Dataset Overview")
     df = pd.read_csv("spam_ham_dataset.csv")
-    st.write(f"Total emails: {len(df)}")
-    spam_count = df['label'].value_counts()['spam']
-    ham_count = df['label'].value_counts()['ham']
-    st.write(f"Spam emails: {spam_count} ({spam_count/len(df)*100:.1f}%)")
-    st.write(f"Ham emails: {ham_count} ({ham_count/len(df)*100:.1f}%)")
+    total = len(df)
+    spam_count = (df['label'] == 'spam').sum()
+    ham_count = (df['label'] == 'ham').sum()
+    st.write(f"Total emails: {total}")
+    st.write(f"Spam: {spam_count} ({spam_count/total*100:.1f}%)")
+    st.write(f"Ham: {ham_count} ({ham_count/total*100:.1f}%)")
     
     # Pie chart
     fig, ax = plt.subplots()
@@ -106,58 +73,85 @@ with st.expander("Example messages to test"):
             st.session_state.email_input = "Buy Viagra online! 90% discount! Limited time offer! Act now!"
             st.rerun()
 
-# Remove the duplicate update of email_input
-# if 'email_input' in st.session_state:
-#     email_input = st.session_state.email_input
-
-# Preprocessing 
+# Classification
 if st.button("Check Spam"):
     if email_input.strip() == "":
         st.warning("Please enter some text to check.")
     else:
         try:
-            prediction = model.predict([email_input])[0]
-            proba = model.predict_proba([email_input])[0]
-            result_label = "SPAM" if prediction == 1 else "HAM"
-
-            if prediction == 1:
-                st.error("🚨 This email is classified as **SPAM**.")
-            else:
-                st.success("✅ This email is classified as **NOT SPAM**.")
-
-            # Metrics
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("Ham probability", f"{proba[0]*100:.2f}%")
-            with col2:
-                st.metric("Spam probability", f"{proba[1]*100:.2f}%")
+            verdicts = {}
+            spam_votes = 0
+            probs = {}
             
-            # Progress bar (simple visualization)
-            st.progress(proba[1])
-
+            # Run all pipelines
+            for name, pipeline in pipelines.items():
+                pred = pipeline.predict([email_input])[0]
+                proba = pipeline.predict_proba([email_input])[0][1]
+                label = 'SPAM' if pred == 1 else 'HAM'
+                verdicts[name] = label
+                probs[name] = proba
+                if pred == 1:
+                    spam_votes += 1
+                    
+            # Ensemble decision
+            final_label = 'SPAM' if spam_votes >= 2 else 'HAM'
+            avg_spam_proba = sum(probs.values()) / len(probs)
+            
+            # Display individual results
+            st.subheader("Model Predictions")
+            for name in pipelines:
+                st.write(f"**{name}:** {verdicts[name]} ({probs[name]*100:.1f}% spam)")
+            
+            st.markdown("---")
+            
+            # Display ensemble verdict
+            if final_label == 'SPAM':
+                st.error(f"🚨 **Ensemble Verdict:** {final_label} (avg {avg_spam_proba*100:.1f}% spam)")
+            else:
+                st.success(f"✅ **Ensemble Verdict:** {final_label} (avg {avg_spam_proba*100:.1f}% spam)")
+            
             # Add to message history
-            timestamp = pd.Timestamp.now().strftime("%H:%M:%S")
+            timestamp = pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S")
             st.session_state.message_history.append({
-                "timestamp": timestamp,
-                "message": email_input[:50] + ("..." if len(email_input) > 50 else ""),
-                "full_message": email_input,
-                "result": result_label,
-                "ham_prob": f"{proba[0]*100:.2f}%",
-                "spam_prob": f"{proba[1]*100:.2f}%"
+                'timestamp': timestamp,
+                'message': email_input[:50] + ("..." if len(email_input) > 50 else ""),
+                'full_message': email_input,
+                'result': final_label,
+                'avg_prob': f"{avg_spam_proba*100:.1f}%",
+                'model_verdicts': verdicts,
+                'model_probs': {k: f"{v*100:.1f}%" for k, v in probs.items()}
             })
 
         except Exception as e:
             st.error(f"⚠️ Prediction failed: {str(e)}")
 
+# Show message history
+if st.session_state.message_history:
+    st.header("Message History")
+    
+    for i, entry in enumerate(st.session_state.message_history):
+        with st.expander(f"{entry['timestamp']} - {entry['message']} ({entry['result']} - {entry['avg_prob']})"):
+            st.text_area("Full message", entry['full_message'], height=100, key=f"history_{i}", disabled=True)
+            
+            # Show individual model predictions
+            st.subheader("Model Predictions")
+            for model_name in entry['model_verdicts']:
+                st.write(f"**{model_name}:** {entry['model_verdicts'][model_name]} ({entry['model_probs'][model_name]} spam)")
+    
+    # Add a clear history button
+    if st.button("Clear History"):
+        st.session_state.message_history = []
+        st.rerun()
 
 # Documentation
 with st.expander("How it works"):
     st.markdown("""
-    This spam classifier uses:
-    - Logistic Regression model
-    - Text preprocessing (stemming, stopword removal)
-    - Bag-of-words feature extraction
-    - Trained on 5171 emails (Spam/Ham dataset)
+    This spam classifier uses an ensemble of three models:
+    - Logistic Regression
+    - Naive Bayes
+    - Multi-Layer Perceptron (MLP)
+    
+    The final prediction is made using majority voting among the three models.
     
     ### Potential issues with spam classification:
     - Short messages may lack enough features for accurate classification
@@ -165,52 +159,3 @@ with st.expander("How it works"):
     - Some legitimate messages might contain words commonly found in spam
     - Try using longer, more detailed messages for better results
     """)
-
-# Add a section for model retraining or threshold adjustment
-with st.expander("Advanced Settings"):
-    st.write("Adjust classification threshold (default is 0.5)")
-    threshold = st.slider("Spam probability threshold", 0.0, 1.0, 0.5, 0.05)
-    st.write(f"Messages with spam probability > {threshold} will be classified as spam")
-    
-    if email_input and 'proba' in locals():
-        adjusted_prediction = "SPAM" if proba[1] > threshold else "HAM"
-        
-        # Add visual indicators for threshold-based prediction
-        if adjusted_prediction == "SPAM":
-            st.error(f"With threshold {threshold}: This message is {adjusted_prediction}")
-        else:
-            st.success(f"With threshold {threshold}: This message is {adjusted_prediction}")
-            
-        # Show the difference from default threshold
-        if (proba[1] > 0.5) != (proba[1] > threshold):
-            st.warning("Note: This prediction differs from the default threshold (0.5)")
-            
-        # Add visualization of threshold
-        st.write("Probability distribution:")
-        prob_chart = st.progress(proba[1])
-        st.markdown(f"""
-        - Current spam probability: {proba[1]*100:.2f}%
-        - Current threshold: {threshold*100:.2f}%
-        - Default threshold: 50%
-        """)
-
-if st.session_state.message_history:
-    st.header("Message History")
-    
-    # Create a table for the message history
-    history_df = pd.DataFrame(st.session_state.message_history)
-    
-    # Display the table with custom formatting
-    for i, entry in enumerate(st.session_state.message_history):
-        with st.expander(f"{entry['timestamp']} - {entry['message']} ({entry['result']})"):
-            st.text_area("Full message", entry['full_message'], height=100, key=f"history_{i}", disabled=True)
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write(f"Ham probability: {entry['ham_prob']}")
-            with col2:
-                st.write(f"Spam probability: {entry['spam_prob']}")
-    
-    # Add a clear history button
-    if st.button("Clear History"):
-        st.session_state.message_history = []
-        st.rerun()
