@@ -1,5 +1,4 @@
-import streamlit as st
-import joblib
+import joblib, streamlit as st
 import nltk
 import string
 import pandas as pd
@@ -111,19 +110,9 @@ with st.expander("Example messages to test"):
 # Preprocessing 
 if st.button("Check Spam"):
     if email_input:
-        # Preprocess
-        cleaned_text = preprocess_text(email_input)
-        
-        # Show preprocessing steps for transparency
-        with st.expander("Preprocessing details"):
-            st.write("Original text:", email_input)
-            st.write("After lowercase:", email_input.lower())
-            st.write("After punctuation removal:", email_input.lower().translate(str.maketrans('', '', string.punctuation)))
-            st.write("After stopword removal and stemming:", cleaned_text)
-        
-        # Predict directly using pipeline
-        prediction = model.predict([cleaned_text])[0]
-        proba = model.predict_proba([cleaned_text])[0]
+        prediction = model.predict([email_input])[0]
+
+
 
         # Display result
         if prediction == 1:
