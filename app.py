@@ -76,7 +76,10 @@ with st.sidebar:
     st.pyplot(fig)
 
 # Main interface
-email_input = st.text_area("Enter email text:", height=200)
+if 'email_input' in st.session_state:
+    email_input = st.text_area("Enter email text:", st.session_state.email_input, height=200)
+else:
+    email_input = st.text_area("Enter email text:", height=200)
 
 # Add example messages
 with st.expander("Example messages to test"):
@@ -85,14 +88,18 @@ with st.expander("Example messages to test"):
         st.subheader("Ham examples")
         if st.button("Load Ham Example 1"):
             st.session_state.email_input = "Hi there, just checking in about our meeting tomorrow. Looking forward to seeing you!"
+            st.rerun()
         if st.button("Load Ham Example 2"):
             st.session_state.email_input = "Please find attached the report you requested. Let me know if you need anything else."
+            st.rerun()
     with col2:
         st.subheader("Spam examples")
         if st.button("Load Spam Example 1"):
             st.session_state.email_input = "CONGRATULATIONS! You've WON $5,000,000! Click here to claim your PRIZE now!!!"
+            st.rerun()
         if st.button("Load Spam Example 2"):
             st.session_state.email_input = "Buy Viagra online! 90% discount! Limited time offer! Act now!"
+            st.rerun()
 
 # Update text area if example was selected
 if 'email_input' in st.session_state:
@@ -192,4 +199,4 @@ if st.session_state.message_history:
     # Add a clear history button
     if st.button("Clear History"):
         st.session_state.message_history = []
-        st.experimental_rerun()
+        st.rerun()
